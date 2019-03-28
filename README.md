@@ -30,5 +30,5 @@ Even thought this is a simple and my first telegram-bot I'm thinking on improvin
 #### Todo:
 - [x] Get a random gif
 - [x] Send gifs to conversation at 4:20 :herb: am and pm 
-- [] Add multi-timezone capability :earth_americas:
-- [] Store data in SQLite file :scroll:
+- [ ] Add multi-timezone capability :earth_americas:
+- [ ] Store data in SQLite file :scroll:
