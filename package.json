@@ -2,9 +2,9 @@
   "name": "cuatroveintebot",
   "version": "1.0.0",
   "description": "Bot made for the automatization of sending 420 related gifs to the conversation it's at",
-  "main": "index.js",
+  "main": "app.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node app.js"
   },
   "keywords": [
     "nodejs",
