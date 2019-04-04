@@ -1,31 +1,90 @@
 require('dotenv').config();
-const Giphy = require('giphy-api')(process.env.GIPHY_TOKEN);
+
 const Telebot = require('telebot');
-const moment = require('moment-timezone');
-const bot = new Telebot(process.env.TELEGRAM_BOT_TOKEN);
+const Moment = require('moment-timezone');
+const Timezones = require('./src/timezones.js');
+const Giphy = require('giphy-api')(process.env.GIPHY_TOKEN);
+const bot = new Telebot({
+    token: process.env.TELEGRAM_BOT_TOKEN,
+    usePlugins: ['askUser', 'commandButton', 'namedButtons'],
+    pluginFolder: '../plugins/',
+});
 
 const GIF_TAGS = ['420', 'WEED', 'marijuana', 'blunt'];
-const DEFAULT_TIMEZONE = 'America/Tijuana';
 
 const chatIds = [];
 let lastMinute = 0;
+const usrRegion = {};
 
-bot.on(['/420', '/start'], (msg) => {
+bot.on('ask.region', msg => {
+    const chatId = msg.chat.id;
+    const region = msg.text;
+
+    if (!Timezones.hasRegion(region)) {
+        return msg.reply.text('That region doesn\'t exists');
+    }
+
+    const areasButtons = Timezones.getRegionAreasButtons(region);
+    usrRegion[chatId] = region;
+
+    return bot.sendMessage(chatId,
+        `Please specify the nearest area`, {
+            replyMarkup: bot.keyboard(
+                areasButtons, {
+                    resize: false,
+                    once: true,
+                    selective: true
+                }
+            ),
+            replyToMessage: msg.message_id,
+            ask: `area`
+        });
+});
+
+
+bot.on('ask.area', msg => {
+    const id = msg.from.id;
+    const region = usrRegion[id];
+    const area = msg.text;
+
+    delete usrRegion[id];
+    
+});
+
+bot.on('/start', msg => {
+    const chatId = msg.chat.id;
+    Moment.tz.setDefault();
+    const zone = moment.tz.Zone.name;
+
+
+});
+
+bot.on('/420', (msg) => {
     const chatId = msg.chat.id;
     addChatToChatsList(chatId);
 });
 
 bot.on('/un420', (msg) => {
-    //   const chatId = msg.chat.id;
     msg.reply.text(`You wont be able to un-420 @${msg.from.username}`);
-    // removeChatFromChatsList(chatId);
 });
 
 bot.on('/timezone', (msg) => {
     const chatId = msg.chat.id;
-    bot.sendMessage(chatId, `The default timezone is **${DEFAULT_TIMEZONE}**`, {
-        parseMode: 'Markdown'
+    const regionButtons = Timezones.getRegionButtons();
+    return bot.sendMessage(chatId, `Please specify the region`, {
+        replyMarkup: bot.keyboard(
+            regionButtons, {
+                resize: false,
+                once: true,
+                selective: true
+            }
+        ),
+        replyToMessage: msg.message_id,
+        ask: 'region'
     });
+    // bot.sendMessage(chatId, `The default timezone is **${DEFAULT_TIMEZONE}**`, {
+    //     parseMode: 'Markdown'
+    // });
 });
 
 bot.on('tick', (msg, dk, tick) => {
@@ -74,7 +133,7 @@ function sendFourTwentyGif() {
  */
 function isFourTwenty() {
     try {
-        const mnt = moment().tz(DEFAULT_TIMEZONE);
+        const mnt = Moment();
         const hourMinute = mnt.format('hm');
 
         return hourMinute == '420';
@@ -91,7 +150,7 @@ function isFourTwenty() {
  */
 function minuteLapsed() {
     try {
-        const mnt = moment().tz(DEFAULT_TIMEZONE);
+        const mnt = Moment();
         const minute = parseInt(mnt.format('mm'));
         const minuteDifference = minute - lastMinute;
 
@@ -146,4 +205,26 @@ function removeChatFromChatsList(chatId) {
     } catch (err) {
         console.error('removeChatFromChatsList', err);
     }
+}
+
+function createRegionButtons() {
+    const allRegionButtons = Object.keys(Timezones.Regions).map((region) => bot.button('region', region));
+    const MAX_BUTTONS_HORIZONTAL = 3;
+
+    const verticalArrangedButtons = [];
+
+    let row = [];
+    for (let index = 0; index < allRegionButtons.length; index++) {
+        row.push(allRegionButtons[index]);
+
+        if ((index + 1) % MAX_BUTTONS_HORIZONTAL === 0) {
+            verticalArrangedButtons.push([...row]);
+            row = [];
+        }
+    }
+    if (row.length > 0) {
+        verticalArrangedButtons.push([...row]);
+    }
+
+    return verticalArrangedButtons;
 }
