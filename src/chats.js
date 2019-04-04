@@ -1,6 +1,6 @@
 require('dotenv').config();
 const request = require('request-promise-native');
-const url = require('url');
+const URL = require('url').URL;
 const BASE_URL = process.env.FIREBASE_DATABASE;
 const Chat = require('../models/chat.js');
 
