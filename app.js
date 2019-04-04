@@ -18,6 +18,8 @@ const GIF_TAGS = ['420', 'WEED', 'marijuana', 'blunt'];
 /** Stores the user selected region when doing the /timezone event */
 const usrRegion = {};
 
+let lastMinute = 0;
+
 bot.on('ask.region', msg => {
     const chatId = msg.chat.id;
     const region = msg.text;
@@ -133,7 +135,7 @@ bot.on('/timezone', (msg) => {
 });
 
 bot.on('tick', async (msg, dk, tick) => {
-    if (twentyMinutesIn()) {
+    if (aMinuteLapsed() && twentyMinutesIn()) {
         const chatsIds = await fourTwentyChats();
         if (chatsIds.length > 0) {
             sendFourTwentyGif(chatsIds);
@@ -238,4 +240,20 @@ function twentyMinutesIn() {
     const moment = Moment();
     const minutes = moment.format('mm');
     return minutes === '20';
+}
+
+/**
+ * Checks if its a minute has passed since the last tick
+ * @returns {boolean} If a minute passed by
+ */
+function aMinuteLapsed() {
+    const moment = Moment();
+    const minutes = parseInt(moment.format('mm'));
+    const minuteLapsed = lastMinute !== minutes;
+
+    if (minuteLapsed) {
+        lastMinute = minutes;
+    }
+    return minuteLapsed;
+
 }
