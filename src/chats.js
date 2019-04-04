@@ -1,8 +1,8 @@
+require('dotenv').config();
 const request = require('request-promise-native');
 const BASE_URL = process.env.FIREBASE_DATABASE;
 const Chat = require('../models/chat.js');
 
-require('dotenv').config();
 
 /**
  * Makes a request to our database to get all the chats
