@@ -221,7 +221,7 @@ async function fourTwentyChats() {
             const hourMinute = moment.format('hm');
             if (hourMinute === '420') {
                 const fourTwentyChats = chats.filter((chat) => chat.timezone === timezone);
-                chatsIds.push(chats.map((chat) => chat.chatId));
+                chatsIds.push(fourTwentyChats.map((chat) => chat.chatId));
             }
         }
 
