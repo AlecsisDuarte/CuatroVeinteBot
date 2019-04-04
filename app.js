@@ -4,16 +4,18 @@ const Telebot = require('telebot');
 const Moment = require('moment-timezone');
 const Timezones = require('./src/timezones.js');
 const Giphy = require('giphy-api')(process.env.GIPHY_TOKEN);
+const Chats = require('./src/chats.js');
+const Chat = require('./models/chat.js');
 const bot = new Telebot({
     token: process.env.TELEGRAM_BOT_TOKEN,
     usePlugins: ['askUser', 'commandButton', 'namedButtons'],
     pluginFolder: '../plugins/',
 });
 
+/** Giphy tags */
 const GIF_TAGS = ['420', 'WEED', 'marijuana', 'blunt'];
 
-const chatIds = [];
-let lastMinute = 0;
+/** Stores the user selected region when doing the /timezone event */
 const usrRegion = {};
 
 bot.on('ask.region', msg => {
@@ -42,30 +44,69 @@ bot.on('ask.region', msg => {
 });
 
 
-bot.on('ask.area', msg => {
-    const id = msg.from.id;
-    const region = usrRegion[id];
+bot.on('ask.area', async msg => {
+    const chatId = msg.from.id;
+    const msgId = msg.message_id;
+    const region = usrRegion[chatId];
     const area = msg.text;
+    delete usrRegion[chatId];
 
-    delete usrRegion[id];
-    
+    const chat = new Chat(null, chatId, `${region}/${area}`);
+    let response;
+    try {
+        const serverResponse = await Chats.postChat(chat)
+        response = serverResponse;
+    } catch (error) {
+        response = `There was an error while updating the timezone, this is the server response:\n\`${error}\``;
+    }
+    bot.sendMessage(chatId,
+        response, {
+            parseMode: 'Markdown',
+            replyToMessage: msgId,
+        });
 });
 
-bot.on('/start', msg => {
+bot.on(['/start', '/420'], async msg => {
     const chatId = msg.chat.id;
+    const msgId = msg.message_id;
     Moment.tz.setDefault();
-    const zone = moment.tz.Zone.name;
+    const zone = Moment.tz.guess();
+    const chat = new Chat(null, chatId, zone);
 
-
+    let response;
+    try {
+        if (await Chats.chatExists(chat)) {
+            const serverChat = await Chats.getChat(chat.chatId);
+            response = `This chat already exists with the **${serverChat.timezone}** timezone, \nif you wish to change the timezone use the \`/timezone\` event`;
+        } else {
+            const serverResponse = await Chats.postChat(chat);
+            response = `The chat created with the **${zone}** timezone,\nif you wish to change the timezone use the \`/timezone\` event`;
+        }
+    } catch (error) {
+        response = `There was an error while starting the bot, this is the server response:\n\`${error}\``;
+    }
+    bot.sendMessage(chatId,
+        response, {
+            parseMode: 'Markdown',
+            replyToMessage: msgId,
+        });
 });
 
-bot.on('/420', (msg) => {
-    const chatId = msg.chat.id;
-    addChatToChatsList(chatId);
-});
-
-bot.on('/un420', (msg) => {
-    msg.reply.text(`You wont be able to un-420 @${msg.from.username}`);
+bot.on('/un420', async (msg) => {
+    const chatId = msg.from.id;
+    const msgId = msg.message_id;
+    let response;
+    try {
+        const serverResponse = await Chats.deleteChat(chatId);
+        response = serverResponse;
+    } catch (error) {
+        response = `There was an error while deleting the bot, this is the server response:\n\`${error}\``;
+    }
+    bot.sendMessage(chatId,
+        response, {
+            parseMode: 'Markdown',
+            replyToMessage: msgId,
+        });
 });
 
 bot.on('/timezone', (msg) => {
@@ -82,14 +123,14 @@ bot.on('/timezone', (msg) => {
         replyToMessage: msg.message_id,
         ask: 'region'
     });
-    // bot.sendMessage(chatId, `The default timezone is **${DEFAULT_TIMEZONE}**`, {
-    //     parseMode: 'Markdown'
-    // });
 });
 
-bot.on('tick', (msg, dk, tick) => {
-    if (minuteLapsed() && isFourTwenty()) {
-        sendFourTwentyGif();
+bot.on('tick', async (msg, dk, tick) => {
+    if (twentyMinutesIn()) {
+        const chatIds = await fourTwentyChats();
+        if (chatIds.length > 0) {
+            sendFourTwentyGif(chatIds);
+        }
     }
 });
 
@@ -99,8 +140,9 @@ bot.start();
  * Sends a random gif to all the chats in the [chatIds] list
  * from Giphy using a random tag from the 
  * list of tags stored in [GIF_TAGS]
+ * @param {String} chatsIds Chats that are going to receive the 420 gifs
  */
-function sendFourTwentyGif() {
+async function sendFourTwentyGif(chatsIds) {
     try {
         for (const index in chatIds) {
             const tagIndex = Math.floor(Math.random() * (GIF_TAGS.length));
@@ -129,102 +171,47 @@ function sendFourTwentyGif() {
 /**
  * Validates whether the current time is 420
  * using the default timezone
- * @returns {boolean} True or False if it's 420
+ * @returns {Array<String>} Returns the chatsIds where is currently 420
  */
-function isFourTwenty() {
-    try {
-        const mnt = Moment();
-        const hourMinute = mnt.format('hm');
+async function fourTwentyChats() {
+    const chatsIds = [];
 
-        return hourMinute == '420';
+    try {
+        const chats = await Chats.getChats();
+        const chatsTimezones = [];
+
+        //We get all chats timezones and exclude repeated
+        for (let index = 0; index < chats.length; index++) {
+            const timezone = chats[index].timezone;
+            if (!chatsTimezones.includes(timezone)) {
+                chatsTimezones.push(timezone);
+            }
+        }
+
+        //We check in each timezone whether or not is 420 already
+        for (let index = 0; index < chatsTimezones.length; index++) {
+            const timezone = chatsTimezones[index];
+            const moment = Moment().tz(timezone);
+            const hourMinute = moment.format('hm');
+            if (hourMinute === '420') {
+                const fourTwentyChats = chats.filter((chat) => chat.timezone === timezone);
+                chatsIds.push(chats.map((chat) => chat.chatId));
+            }
+        }
+
+        return chatsIds;
     } catch (err) {
         console.error('isFourTwenty', err);
+        throw Error(err);
     }
 }
 
 /**
- * Validates whether a minute has passed or not
- * using the global variable [lastMinute]
- * @returns {boolean} True or False if a minute
- * has passed
+ * Checks if its the 20th minute of the hour
+ * @returns {boolean} If its the 20th minute of the hour or not
  */
-function minuteLapsed() {
-    try {
-        const mnt = Moment();
-        const minute = parseInt(mnt.format('mm'));
-        const minuteDifference = minute - lastMinute;
-
-        if (minuteDifference !== 0) {
-            lastMinute = minute;
-            return true;
-        }
-        return false;
-    } catch (err) {
-        console.error('minuteLapsed', err);
-    }
-}
-
-/**
- * Adds a ChatId to the current List
- * @param {number} chatId Id of the Chat to add
- */
-function addChatToChatsList(chatId) {
-    try {
-        if (!chatIds.includes(chatId)) {
-            chatIds.push(chatId);
-            bot.sendMessage(chatId, 'This chat has been **addedd** to my __420 chats__ list', {
-                parseMode: 'Markdown'
-            });
-        } else {
-            bot.sendMessage(chatId, 'This chat **already existsd** in my __420 chats__ list', {
-                parseMode: 'Markdown'
-            });
-        }
-    } catch (err) {
-        console.error('addChatToChatsList', err);
-    }
-}
-
-/**
- * Removes the ChatId from the list of chats
- * @param {number} chatId Id of the Chat to remove
- */
-function removeChatFromChatsList(chatId) {
-    let indexOfChatId = -1;
-    try {
-        if ((indexOfChatId = chatIds.indexOf(chatId)) >= 0) {
-            chatIds.splice(indexOfChatId, 1);
-            bot.sendMessage(chatId, 'The chat has been **removedd** from my __420 chats__ list', {
-                parseMode: 'Markdown'
-            });
-        } else {
-            bot.sendMessage(chatId, 'This chat **doesn\'t existd** in my __420 chats__ list', {
-                parseMode: 'Markdown'
-            });
-        }
-    } catch (err) {
-        console.error('removeChatFromChatsList', err);
-    }
-}
-
-function createRegionButtons() {
-    const allRegionButtons = Object.keys(Timezones.Regions).map((region) => bot.button('region', region));
-    const MAX_BUTTONS_HORIZONTAL = 3;
-
-    const verticalArrangedButtons = [];
-
-    let row = [];
-    for (let index = 0; index < allRegionButtons.length; index++) {
-        row.push(allRegionButtons[index]);
-
-        if ((index + 1) % MAX_BUTTONS_HORIZONTAL === 0) {
-            verticalArrangedButtons.push([...row]);
-            row = [];
-        }
-    }
-    if (row.length > 0) {
-        verticalArrangedButtons.push([...row]);
-    }
-
-    return verticalArrangedButtons;
+function twentyMinutesIn() {
+    const moment = Moment();
+    const minutes = moment.format('mm');
+    return minutes === '20';
 }

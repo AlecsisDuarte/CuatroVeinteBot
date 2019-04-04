@@ -1,23 +1,11 @@
 const Timezones = require('../config/timezones.json');
 const MAX_BUTTONS_HORIZONTAL = 3;
 
-module.exports = {
-  /**
-   * Creates the buttons of the named buttons
-   * @returns {Array<Array<String>>} Array of named buttons
-   */
-  getRegionButtons: _getRegionButtons,
-  /**
-   * @returns {Object} Creates the named region buttons
-   */
-  getNamedButtons: _getNamedButtons,
-
-
-  hasRegion: _hasRegion,
-  getRegionAreasButtons: _getRegionAreasButtons
-}
-
-function _getNamedButtons() {
+/**
+ * Creates the buttons of the named buttons
+ * @returns {Array<Array<String>>} Array of named buttons
+ */
+exports.getNamedButtons = function() {
   const allRegionButtons = Object.keys(Timezones.Regions);
   const namedButtons = {};
   for (let index = 0; index < allRegionButtons.length; index++) {
@@ -31,7 +19,10 @@ function _getNamedButtons() {
   return namedButtons;
 }
 
-function _getRegionButtons() {
+/**
+ * @returns {Object} Creates the named region buttons
+ */
+exports.getRegionButtons = function () {
   const allRegionButtons = Object.keys(Timezones.Regions);
   const verticalArrangedButtons = [];
 
@@ -56,7 +47,7 @@ function _getRegionButtons() {
  * @param {String} region Region to verify
  * @returns {Boolean} Whether it exists or not
  */
-function _hasRegion(region) {
+exports.hasRegion = function(region) {
   return Timezones.Regions[region] !== undefined;
 }
 
@@ -65,7 +56,7 @@ function _hasRegion(region) {
  * @param {String} region Region to verify
  * @returns {Array<Array<String>>} 
  */
-function _getRegionAreasButtons(region) {
+exports.getRegionAreasButtons = function (region) {
   const allAreas = Timezones.Regions[region];
   const verticalArrangedButtons = [];
 
