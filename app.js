@@ -80,7 +80,7 @@ bot.on(['/start', '/420'], async msg => {
             response = `This chat already exists with the *${serverChat.timezone}* timezone, \nif you wish to change the timezone use the \`/timezone\` event`;
         } else {
             const serverResponse = await Chats.postChat(chat);
-            response = `The chat created with the *${zone}* timezone,\nif you wish to change the timezone use the \`/timezone\` event`;
+            response = `The chat was created with the *${zone}* timezone,\nif you wish to change the timezone use the \`/timezone\` event`;
         }
     } catch (error) {
         response = `There was an error while starting the bot, this is the server response:\n\`${error}\``;
