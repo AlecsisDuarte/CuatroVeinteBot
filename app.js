@@ -67,7 +67,7 @@ bot.on('ask.area', async msg => {
 });
 
 bot.on(['/start', '/420'], async msg => {
-    const chatId = msg.chat.id;
+    const chatId = msg.from.id;
     const msgId = msg.message_id;
     Moment.tz.setDefault();
     const zone = Moment.tz.guess();
@@ -77,19 +77,22 @@ bot.on(['/start', '/420'], async msg => {
     try {
         if (await Chats.chatExists(chat)) {
             const serverChat = await Chats.getChat(chat.chatId);
-            response = `This chat already exists with the **${serverChat.timezone}** timezone, \nif you wish to change the timezone use the \`/timezone\` event`;
+            response = `This chat already exists with the *${serverChat.timezone}* timezone, \nif you wish to change the timezone use the \`/timezone\` event`;
         } else {
             const serverResponse = await Chats.postChat(chat);
-            response = `The chat created with the **${zone}** timezone,\nif you wish to change the timezone use the \`/timezone\` event`;
+            response = `The chat created with the *${zone}* timezone,\nif you wish to change the timezone use the \`/timezone\` event`;
         }
     } catch (error) {
         response = `There was an error while starting the bot, this is the server response:\n\`${error}\``;
     }
+
     bot.sendMessage(chatId,
         response, {
             parseMode: 'Markdown',
             replyToMessage: msgId,
-        });
+        }).catch(error => {
+        console.error('bot.message_/start/420', error);
+    });
 });
 
 bot.on('/un420', async (msg) => {
@@ -106,7 +109,9 @@ bot.on('/un420', async (msg) => {
         response, {
             parseMode: 'Markdown',
             replyToMessage: msgId,
-        });
+        }).catch(error => {
+        console.error('bot.message_/un420', error);
+    });
 });
 
 bot.on('/timezone', (msg) => {
@@ -122,6 +127,8 @@ bot.on('/timezone', (msg) => {
         ),
         replyToMessage: msg.message_id,
         ask: 'region'
+    }).catch(error => {
+        console.error('bot.message_/un420', error);
     });
 });
 

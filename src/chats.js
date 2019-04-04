@@ -52,7 +52,7 @@ async function postChat(chat) {
     });
 
     if (response !== null && response.name !== undefined) {
-      return 'The chat timezone **updated succesfully**';
+      return 'The chat timezone *updated succesfully*';
     }
     console.error('postChat_response', response);
     return 'Error while creating the chat, try again later';
@@ -108,7 +108,7 @@ async function chatExists(chat) {
  */
 async function getChat(chatId) {
   const chats = await getChats();
-  if (chats.length == 0) return null;
+  if (chats.length === 0) return null;
   return chats.find((chat, index) => chat.chatId === chatId);
 }
 
@@ -124,7 +124,7 @@ async function deleteChat(chatId) {
   try {
     const response = await request.delete(uri);
     if (response === 'null') {
-      return 'Chat **deleted** successfully';
+      return 'Chat *deleted* successfully';
     }
     console.error('deleteChat_response', response);
     return 'I couldn\'t delete the chat from firebase, try again later';
