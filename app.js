@@ -134,24 +134,41 @@ bot.on('/timezone', (msg) => {
 
 bot.on('tick', async (msg, dk, tick) => {
     if (twentyMinutesIn()) {
-        const chatIds = await fourTwentyChats();
-        if (chatIds.length > 0) {
-            sendFourTwentyGif(chatIds);
+        const chatsIds = await fourTwentyChats();
+        if (chatsIds.length > 0) {
+            sendFourTwentyGif(chatsIds);
         }
     }
 });
 
+bot.on('stop', (msg, ...args) => {
+    console.error('stop_msg', msg);
+    console.log('stop_args', args);
+});
+
+bot.on('error', (msg, ...args) => {
+    console.error('error_msg', msg);
+    console.log('error_args', args);
+});
+
+bot.on('reconnecting', (msg, ...args) => {
+    console.error('reconnecting_msg', msg);
+    console.log('reconnecting_args', args);
+});
+
+
 bot.start();
 
+
 /**
- * Sends a random gif to all the chats in the [chatIds] list
+ * Sends a random gif to all the chats in the [chatsIds] list
  * from Giphy using a random tag from the 
  * list of tags stored in [GIF_TAGS]
  * @param {String} chatsIds Chats that are going to receive the 420 gifs
  */
 async function sendFourTwentyGif(chatsIds) {
     try {
-        for (const index in chatIds) {
+        for (const index in chatsIds) {
             const tagIndex = Math.floor(Math.random() * (GIF_TAGS.length));
             Giphy.random({
                     tag: GIF_TAGS[tagIndex],
@@ -165,7 +182,7 @@ async function sendFourTwentyGif(chatsIds) {
 
                     const gifURL = res.data.image_url;
                     const gifTag = GIF_TAGS[tagIndex];
-                    bot.sendDocument(chatIds[index], gifURL, {
+                    bot.sendDocument(chatsIds[index], gifURL, {
                         caption: `Here is your 420 gif (#${gifTag} tag used). See you in 12 hours`,
                     });
                 });
