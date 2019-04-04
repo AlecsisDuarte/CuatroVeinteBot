@@ -45,7 +45,7 @@ bot.on('ask.region', msg => {
 
 
 bot.on('ask.area', async msg => {
-    const chatId = msg.from.id;
+    const chatId = msg.chat.id;
     const msgId = msg.message_id;
     const region = usrRegion[chatId];
     const area = msg.text;
@@ -67,7 +67,7 @@ bot.on('ask.area', async msg => {
 });
 
 bot.on(['/start', '/420'], async msg => {
-    const chatId = msg.from.id;
+    const chatId = msg.chat.id;
     const msgId = msg.message_id;
     Moment.tz.setDefault();
     const zone = Moment.tz.guess();
@@ -96,7 +96,7 @@ bot.on(['/start', '/420'], async msg => {
 });
 
 bot.on('/un420', async (msg) => {
-    const chatId = msg.from.id;
+    const chatId = msg.chat.id;
     const msgId = msg.message_id;
     let response;
     try {
